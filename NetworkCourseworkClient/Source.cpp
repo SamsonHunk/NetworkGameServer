@@ -1,19 +1,20 @@
 #include "Box2D/Box2D.h"
 #include <SFML/Network.hpp>
 #include <iostream>
+#include <thread>
+#include "GlobalVars.h"
 
 // The IP address of the server
 #define SERVERIP "127.0.0.1"
-#define PORT 7777
-
+unsigned short PORT = 7777;
+sf::IpAddress serverip = sf::IpAddress::LocalHost;
+sf::IpAddress anyIp = sf::IpAddress::Any;
+sf::IpAddress clientIp;
 sf::UdpSocket socket;
+
 extern 	enum class PlayerStates { movingLeft, movingRight, stationary, movingUp, movingDown };
 
-
-extern struct playerMoveMessage {
-	PlayerStates stateMessage;
-	b2Vec2 position;
-};
+b2World* physicsWorld;
 
 sf::Packet movePacket;
 
@@ -21,11 +22,30 @@ using namespace std;
 
 int main()
 {
-	if (socket.bind(7777, sf::IpAddress("127.0.0.1")) != socket.Done)
-	{//error making socket port
-		cout << "Error Binding port, error code 1" << endl;
-		return 1;
+	//server initial setup
+	cout << "Starting Server" << endl;
+	if (socket.bind(PORT, serverip) != sf::Socket::Done)
+	{
+		cout << "Server bind failed" << endl;
 	}
+	else
+	{
+		cout << "Bind success" << endl;
+	}
+	//initialise the physics simulation
+	physicsWorld = new b2World(b2Vec2(0, .5));
+	cout << "Physics world initialised" << endl;
 
-	if (socket.receive(movePacket, sf::IpAddress(SERVERIP), PORT);
+	socket.setBlocking(true);
+	cout << "Waiting for client connection..." << endl;
+	
+	if (socket.receive(movePacket, serverip, PORT) != sf::Socket::Done)
+	{
+		cout << "Error recieving packet" << endl;
+	}
+	connectionMessage packetIn;
+	movePacket >> packetIn.clientIp >> packetIn.clientPort;
+	cout << "Packet Recieved" << endl;
+	cout << packetIn.clientIp << endl;
+
 }

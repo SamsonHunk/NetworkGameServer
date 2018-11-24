@@ -19,7 +19,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Floor.cpp" />
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="SimulationObj.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Floor.h" />
+    <ClInclude Include="GlobalVars.h" />
+    <ClInclude Include="Player.h" />
+    <ClInclude Include="SimulationObj.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
