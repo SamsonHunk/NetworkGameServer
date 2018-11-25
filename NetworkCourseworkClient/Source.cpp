@@ -19,6 +19,7 @@ b2World* physicsWorld;
 sf::Packet movePacket;
 
 using namespace std;
+void messageHandlerThread();
 
 int main()
 {
@@ -48,4 +49,13 @@ int main()
 	cout << "Packet Recieved" << endl;
 	cout << packetIn.clientIp << endl;
 
+}
+
+void messageHandlerThread()
+{//one thread on the server will handle grabbing packets from the player and
+	//updating the simulation accordingly
+	playerMoveMessage packetIn;
+	sf::Packet packet;
+	socket.receive(packet, clientIp, PORT);
+	packet >> 
 }

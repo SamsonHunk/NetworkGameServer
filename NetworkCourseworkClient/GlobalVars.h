@@ -10,6 +10,7 @@ namespace GLOBALVARS
 		int stateMessage;
 		float xPos;
 		float yPos;
+		int playerNum;
 	};
 
 	extern struct connectionMessage {
