@@ -3,6 +3,7 @@
 #include <iostream>
 #include <thread>
 #include "GlobalVars.h"
+#include <stack>
 
 // The IP address of the server
 #define SERVERIP "127.0.0.1"
@@ -12,11 +13,12 @@ sf::IpAddress anyIp = sf::IpAddress::Any;
 sf::IpAddress clientIp;
 sf::UdpSocket socket;
 
-extern 	enum class PlayerStates { movingLeft, movingRight, stationary, movingUp, movingDown };
+bool serverDone = false;
 
 b2World* physicsWorld;
 
-sf::Packet movePacket;
+std::stack<connectionMessage> connectionMessageStack;
+std::stack<playerMoveMessage> moveMessageStack;
 
 using namespace std;
 void messageHandlerThread();
@@ -40,22 +42,28 @@ int main()
 	socket.setBlocking(true);
 	cout << "Waiting for client connection..." << endl;
 	
-	if (socket.receive(movePacket, serverip, PORT) != sf::Socket::Done)
+	sf::Packet connectPacket;
+
+	if (socket.receive(connectPacket, serverip, PORT) != sf::Socket::Done)
 	{
 		cout << "Error recieving packet" << endl;
 	}
 	connectionMessage packetIn;
-	movePacket >> packetIn.clientIp >> packetIn.clientPort;
+	connectPacket >> packetIn.clientIp >> packetIn.clientPort;
 	cout << "Packet Recieved" << endl;
 	cout << packetIn.clientIp << endl;
 
 }
 
 void messageHandlerThread()
-{//one thread on the server will handle grabbing packets from the player and
+{//one thread on the server will handle grabbing packets from the player and storing them into a container for the main thread
 	//updating the simulation accordingly
-	playerMoveMessage packetIn;
-	sf::Packet packet;
-	socket.receive(packet, clientIp, PORT);
-	packet >> 
+	playerMoveMessage moveIn;
+	connectionMessage connectIn;
+	while (!serverDone)
+	{
+		sf::Packet packet;
+		socket.receive(packet, clientIp, PORT);
+
+	}
 }
