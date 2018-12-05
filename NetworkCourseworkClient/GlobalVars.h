@@ -1,6 +1,6 @@
 #ifndef GLOBALVARS
 #define GLOBALVARS
-extern enum class PlayerStates { movingLeft, movingRight, stationary, movingUp, movingDown };
+extern enum PlayerStates { movingLeft, movingRight, stationary, movingUp, movingDown };
 
 namespace GLOBALVARS
 {
@@ -23,6 +23,17 @@ namespace GLOBALVARS
 		int messageType = 0;
 		std::string clientIp;
 		unsigned short clientPort;
+	};
+
+	extern struct serverPositionPing
+	{
+		int messageType = 2;
+		float xPos1;
+		float yPos1;
+		int player1State;
+		float xPos2;
+		float yPos2;
+		int player2State;
 	};
 }
 #endif // !GLOBALVARS
