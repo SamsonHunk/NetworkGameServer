@@ -11,6 +11,7 @@
 using namespace std;
 
 unsigned short PORT = 7777;
+unsigned short CLIENTPORT = 7778;
 sf::IpAddress serverip = sf::IpAddress::LocalHost;
 sf::IpAddress anyIp = sf::IpAddress::Any;
 sf::IpAddress clientIp;
@@ -63,7 +64,7 @@ int main()
 			//reset the timer
 			start = std::chrono::high_resolution_clock::now();
 
-			cout << "Ping!" << endl;
+			//cout << "Ping!" << endl;
 
 			messageCompute();
 		}
@@ -78,7 +79,7 @@ void messageHandler()
 	
 	int messageType;
 	sf::Packet packet;
-	if (socket.receive(packet, clientIp, PORT) != sf::Socket::Done)
+	if (socket.receive(packet, anyIp, PORT) != sf::Socket::Done)
 	{
 		//cout << "Passed through without getting a new packet" << endl;
 	}
@@ -117,7 +118,7 @@ void messageCompute()
 		list<connectionMessage>::iterator connectionIt;
 		for (connectionIt = connectionMessageStack.begin(); connectionIt != connectionMessageStack.end(); connectionIt++)
 		{
-			playerIps.push_back(sf::IpAddress(connectionIt->clientIp));
+			playerIps.push_back(sf::IpAddress(connectionIt->clientIp.toWideString));
 			playerPorts.push_back(connectionIt->clientPort);
 
 
@@ -126,7 +127,7 @@ void messageCompute()
 			sf::Packet packet;
 			newPlayer.messageType = 1;
 			newPlayer.stateMessage = PlayerStates::stationary;
-			newPlayer.xPos = 400;
+			newPlayer.xPos = 600;
 			newPlayer.yPos = 0;
 			newPlayer.playerNum = playerIps.size();
 

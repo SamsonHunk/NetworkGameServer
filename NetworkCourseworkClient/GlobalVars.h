@@ -21,7 +21,7 @@ namespace GLOBALVARS
 	extern struct  connectionMessage
 	{
 		int messageType = 0;
-		std::string clientIp;
+		sf::String clientIp;
 		unsigned short clientPort;
 	};
 
