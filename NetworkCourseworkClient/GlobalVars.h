@@ -11,7 +11,7 @@ namespace GLOBALVARS
 
 
 	extern struct playerMoveMessage {
-		int messageType = 1;
+		int messageType = 2;
 		int stateMessage;
 		float xPos;
 		float yPos;
@@ -20,14 +20,14 @@ namespace GLOBALVARS
 
 	extern struct  connectionMessage
 	{
-		int messageType = 0;
-		sf::String clientIp;
+		int messageType = 1;
+		std::string clientIp;
 		unsigned short clientPort;
 	};
 
 	extern struct serverPositionPing
 	{
-		int messageType = 2;
+		int messageType = 3;
 		float xPos1;
 		float yPos1;
 		int player1State;

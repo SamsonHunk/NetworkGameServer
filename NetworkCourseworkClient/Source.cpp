@@ -4,18 +4,20 @@
 #include "GlobalVars.h"
 #include <list>
 #include <chrono>
-
+#include <vector>
+#include <thread>
+#include <mutex>
 
 // The IP address of the server
 #define SERVERIP "127.0.0.1"
 using namespace std;
 
 unsigned short PORT = 7777;
-unsigned short CLIENTPORT = 7778;
 sf::IpAddress serverip = sf::IpAddress::LocalHost;
 sf::IpAddress anyIp = sf::IpAddress::Any;
 sf::IpAddress clientIp;
 sf::UdpSocket socket;
+
 
 
 chrono::high_resolution_clock::time_point start;
@@ -24,6 +26,7 @@ chrono::high_resolution_clock::time_point stopPoint;
 bool serverDone = false;
 
 //list of current messages
+std::mutex messageLock; //mutex lock to protect the shared storage data
 list<connectionMessage> connectionMessageStack;
 list<playerMoveMessage> moveMessageStack;
 
@@ -46,99 +49,131 @@ int main()
 	{
 		cout << "Bind success" << endl;
 	}
-	
-
-	socket.setBlocking(false);
+	cout << "ServerIp: " << serverip << endl;
 
 	start = std::chrono::high_resolution_clock::now();
+	//socket.setBlocking(true);
 
+
+	thread messageFork(messageHandler);
 
 	while (!serverDone)
 	{
-		messageHandler();
-
 		//if 1 ms has passed send out a new server ping
 		stopPoint = std::chrono::high_resolution_clock::now();
 		if (chrono::duration_cast<chrono::milliseconds>(stopPoint - start).count() >= 1)
 		{
+			messageLock.lock();
 			//reset the timer
 			start = std::chrono::high_resolution_clock::now();
-
-			//cout << "Ping!" << endl;
-
 			messageCompute();
+			//cout << "Ping!" << endl;
+			messageLock.unlock();
 		}
 	}
+	//when the server is done, wait for the thread to join then exit
+	messageFork.join();
 }
 
 void messageHandler()
 {//one thread on the server will handle grabbing packets from the player and storing them into a container for the main thread
-	//updating the simulation accordingly
-	playerMoveMessage moveIn;
-	connectionMessage connectIn;
-	
-	int messageType;
+	int messageType = 0;
 	sf::Packet packet;
-	if (socket.receive(packet, anyIp, PORT) != sf::Socket::Done)
-	{
-		//cout << "Passed through without getting a new packet" << endl;
-	}
-	else
-	{
-		packet >> messageType;
-		//figure out what kind of message we revieved
-		switch (messageType)
-		{
-		case 0:
-			//new player connection message
-			packet >> connectIn.messageType >> connectIn.clientIp >> connectIn.clientPort;
-			connectionMessageStack.push_back(connectIn);
-			break;
-		case 1:
-			//new player move message
-			packet >> moveIn.messageType >> moveIn.stateMessage >> moveIn.xPos >> moveIn.yPos;
-			moveMessageStack.push_back(moveIn);
-			break;
+	sf::IpAddress connectionIp;
+	unsigned short connectionPort;
 
-		default:
-			break;
+	while (!serverDone)
+	{
+			playerMoveMessage moveIn;
+			connectionMessage connectIn;
+			messageType = 0;
+			packet.clear();
+
+			//ask the selector if there is any data for the socket to collect
+			if (socket.receive(packet, connectionIp, connectionPort) != sf::Socket::Done)
+			{
+				//cout << "Packet error" << endl;
+			}
+			else
+			{
+				messageLock.lock();
+				packet >> messageType;
+				//figure out what kind of message we revieved
+				switch (messageType)
+				{
+				case 1:
+					//new player connection message
+					connectIn.clientIp = connectionIp.toString();
+					connectIn.clientPort = connectionPort;
+					connectionMessageStack.push_back(connectIn);
+					cout << "Client packet recieved" << endl;
+					break;
+				case 2:
+					//new player move message
+					packet >> moveIn.stateMessage >> moveIn.xPos >> moveIn.yPos >> moveIn.playerNum;
+					moveMessageStack.push_back(moveIn);
+					//cout << "Move packet recieved" << endl;
+					break;
+
+				default:
+					//cout << "Bad Input";
+					break;
+				}
+				messageLock.unlock();
+				//cout << "packet recieved" << endl;
+			}
 		}
-
-		cout << "Recieved a new packet" << endl;
 	}
-}
+
 
 //compute and send new ping update
 void messageCompute()
 {
 	//go through each list of messages and figure out what to do with them, earliest first so we end up with the most up to date
 	//positions
-	if (!connectionMessageStack.empty())
+	if (connectionMessageStack.size() != 0)
 	{
 		list<connectionMessage>::iterator connectionIt;
 		for (connectionIt = connectionMessageStack.begin(); connectionIt != connectionMessageStack.end(); connectionIt++)
 		{
-			playerIps.push_back(sf::IpAddress(connectionIt->clientIp.toWideString));
-			playerPorts.push_back(connectionIt->clientPort);
 
 
 			//grab new player ip and stuff then tell them they are connected
 			playerMoveMessage newPlayer;
 			sf::Packet packet;
-			newPlayer.messageType = 1;
+			newPlayer.messageType = 2;
 			newPlayer.stateMessage = PlayerStates::stationary;
 			newPlayer.xPos = 600;
 			newPlayer.yPos = 0;
-			newPlayer.playerNum = playerIps.size();
+			newPlayer.playerNum = playerIps.size() + 1;
 
 			packet << newPlayer.messageType << newPlayer.stateMessage << newPlayer.xPos << newPlayer.yPos << newPlayer.playerNum;
-			if (socket.send(packet, connectionIt->clientIp, connectionIt->clientPort) != sf::Socket::Done)
+			sf::IpAddress ipOut(connectionIt->clientIp);
+			if (socket.send(packet, ipOut, connectionIt->clientPort) != sf::Socket::Done)
 			{//send out initial message to the connecting player to get them into the game
-				cout << "Player instansiate failed... Player ip: " << connectionIt->clientIp << endl;
+				cout << "Player instansiate failed... Player ip: " << connectionIt->clientIp << " client port: " << 5428 << endl;
 			}
 			else
 			{
-				cout << "New Client Connected" << endl;
+				switch (newPlayer.playerNum)
+				{
+				case 1:
+					newPlayer.xPos = 600;
+					cout << "New Client Connected: " << connectionIt->clientIp << " port: " << connectionIt->clientPort << endl;
+					playerIps.push_back(sf::IpAddress(connectionIt->clientIp));
+					playerPorts.push_back(connectionIt->clientPort);
+					break;
+				case 2:
+					newPlayer.xPos = 600;
+					cout << "New Client Connected: " << connectionIt->clientIp << " port: " << connectionIt->clientPort << endl;
+					playerIps.push_back(sf::IpAddress(connectionIt->clientIp));
+					playerPorts.push_back(connectionIt->clientPort);
+					break;
+				default:
+					cout << "Refused connection, too many players..." << endl;
+					break;
+				}
+				
 			}
 		}
 
@@ -147,7 +182,7 @@ void messageCompute()
 	}
 
 	//figure out the most up to date position of everyone and ping out what they are doing
-	if (!moveMessageStack.empty())
+	if (moveMessageStack.size() != 0)
 	{
 		float playerPosArray[2][2];
 		PlayerStates playerStateArray[2];
@@ -170,6 +205,8 @@ void messageCompute()
 		movePing.xPos2 = playerPosArray[1][0];
 		movePing.yPos2 = playerPosArray[1][1];
 
+		//cout << movePing.xPos2 << movePing.yPos2 << endl;
+
 		packet << movePing.messageType << movePing.xPos1 << movePing.yPos1 << movePing.player1State << movePing.xPos2 << movePing.yPos2 << movePing.player2State;
 		if (!playerIps.empty())
 		{
@@ -177,9 +214,14 @@ void messageCompute()
 			{//cycle through connected clients and send the ping
 				if (socket.send(packet, playerIps[it], playerPorts[it]) != sf::Socket::Done)
 				{
-					cout << "Error sending to player " << it + 1 << endl;
+					cout << "Error sending to player " << it << endl;
+				}
+				else
+				{
+					//cout << "Ping" << endl;
 				}
 			}
 		}
+		moveMessageStack.clear();
 	}
 }
