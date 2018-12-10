@@ -102,9 +102,9 @@ void messageHandler()
 				switch (messageType)
 				{
 				case 1:
-					//new player connection message
-					connectIn.clientIp = connectionIp.toString();
-					connectIn.clientPort = connectionPort;
+					//grab information from connection packet
+					packet >> connectIn.clientIp >> connectIn.clientPort;
+					connectIn.InitialPort = connectionPort;
 					connectionMessageStack.push_back(connectIn);
 					cout << "Client packet recieved" << endl;
 					break;
@@ -149,7 +149,7 @@ void messageCompute()
 
 			packet << newPlayer.messageType << newPlayer.stateMessage << newPlayer.xPos << newPlayer.yPos << newPlayer.playerNum;
 			sf::IpAddress ipOut(connectionIt->clientIp);
-			if (socket.send(packet, ipOut, connectionIt->clientPort) != sf::Socket::Done)
+			if (socket.send(packet, ipOut, connectionIt->InitialPort) != sf::Socket::Done)
 			{//send out initial message to the connecting player to get them into the game
 				cout << "Player instansiate failed... Player ip: " << connectionIt->clientIp << " client port: " << 5428 << endl;
 			}
@@ -158,13 +158,13 @@ void messageCompute()
 				switch (newPlayer.playerNum)
 				{
 				case 1:
-					newPlayer.xPos = 600;
+					newPlayer.xPos = 200;
 					cout << "New Client Connected: " << connectionIt->clientIp << " port: " << connectionIt->clientPort << endl;
 					playerIps.push_back(sf::IpAddress(connectionIt->clientIp));
 					playerPorts.push_back(connectionIt->clientPort);
 					break;
 				case 2:
-					newPlayer.xPos = 600;
+					newPlayer.xPos = 800;
 					cout << "New Client Connected: " << connectionIt->clientIp << " port: " << connectionIt->clientPort << endl;
 					playerIps.push_back(sf::IpAddress(connectionIt->clientIp));
 					playerPorts.push_back(connectionIt->clientPort);
@@ -182,7 +182,7 @@ void messageCompute()
 	}
 
 	//figure out the most up to date position of everyone and ping out what they are doing
-	if (moveMessageStack.size() != 0)
+	if (moveMessageStack.size() != 0 && playerIps.size() > 1)
 	{
 		float playerPosArray[2][2];
 		PlayerStates playerStateArray[2];
@@ -204,6 +204,7 @@ void messageCompute()
 		movePing.yPos1 = playerPosArray[0][1];
 		movePing.xPos2 = playerPosArray[1][0];
 		movePing.yPos2 = playerPosArray[1][1];
+
 
 		//cout << movePing.xPos2 << movePing.yPos2 << endl;
 

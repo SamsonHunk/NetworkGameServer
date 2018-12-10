@@ -23,6 +23,7 @@ namespace GLOBALVARS
 		int messageType = 1;
 		std::string clientIp;
 		unsigned short clientPort;
+		unsigned short InitialPort;
 	};
 
 	extern struct serverPositionPing
