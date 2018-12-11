@@ -60,7 +60,7 @@ int main()
 
 	while (!serverDone)
 	{
-
+		cout.flush();
 		//if 1 ms has passed send out a new server ping
 		stopPoint = std::chrono::high_resolution_clock::now();
 		if (chrono::duration_cast<chrono::milliseconds>(stopPoint - start).count() >= 100)
@@ -69,7 +69,6 @@ int main()
 			//reset the timer
 			start = std::chrono::high_resolution_clock::now();
 			messageCompute();
-			//cout << "Ping!" << endl;
 			messageLock.unlock();
 		}
 	}
@@ -121,6 +120,8 @@ void messageHandler()
 					//new bullet ping
 					packet >> bulletIn.posx >> bulletIn.posy >> bulletIn.dir >> bulletIn.bulletNum >> bulletIn.playerNum;
 					shootStack.push_back(bulletIn);
+					cout << "Cool ass bullet dog" << endl;
+					break;
 				default:
 					cout << "Bad Input" << endl;
 					break;
