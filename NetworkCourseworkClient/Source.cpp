@@ -20,6 +20,8 @@ sf::UdpSocket socket;
 
 int maxBullets = 4;
 
+float tickrate = 10;
+
 chrono::high_resolution_clock::time_point start;
 chrono::high_resolution_clock::time_point stopPoint;
 
@@ -67,6 +69,9 @@ int main()
 	}
 	cout << "ServerIp: " << serverip << endl;
 
+	cout << "What tickrate do you want the server to have? (miliseconds until next ping)" << endl;
+	cin >> tickrate;
+
 	start = std::chrono::high_resolution_clock::now();
 
 	thread messageFork(messageHandler);
@@ -76,7 +81,7 @@ int main()
 		cout.flush();
 		//if 1 ms has passed send out a new server ping
 		stopPoint = std::chrono::high_resolution_clock::now();
-		if (chrono::duration_cast<chrono::milliseconds>(stopPoint - start).count() >= 100)
+		if (chrono::duration_cast<chrono::milliseconds>(stopPoint - start).count() >= tickrate)
 		{
 			messageLock.lock();
 			//reset the timer
