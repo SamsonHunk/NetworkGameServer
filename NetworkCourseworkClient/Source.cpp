@@ -18,7 +18,7 @@ sf::IpAddress anyIp = sf::IpAddress::Any;
 sf::IpAddress clientIp;
 sf::UdpSocket socket;
 
-
+int maxBullets = 4;
 
 chrono::high_resolution_clock::time_point start;
 chrono::high_resolution_clock::time_point stopPoint;
@@ -37,9 +37,24 @@ vector<unsigned short> playerPorts;
 
 void messageHandler();
 void messageCompute();
+sf::Packet bulletPingPack(serverBulletPing pingIn);
 
 int main()
 {
+	int input;
+	socket.setBlocking(true);
+	cout << "press 1 for local host, 2 for LAN" << endl;
+	cin >> input;
+
+	switch (input)
+	{
+	case 1:
+		serverip = sf::IpAddress::LocalHost;
+		break;
+	case 2:
+		serverip = sf::IpAddress::getLocalAddress();
+		break;
+	}
 	//server initial setup
 	cout << "Starting Server" << endl;
 	if (socket.bind(PORT, serverip) != sf::Socket::Done)
@@ -53,8 +68,6 @@ int main()
 	cout << "ServerIp: " << serverip << endl;
 
 	start = std::chrono::high_resolution_clock::now();
-	//socket.setBlocking(true);
-	cout << sizeof(serverBulletPing);
 
 	thread messageFork(messageHandler);
 
@@ -112,7 +125,7 @@ void messageHandler()
 					break;
 				case 2:
 					//new player move message
-					packet >> moveIn.stateMessage >> moveIn.xPos >> moveIn.yPos >> moveIn.playerNum;
+					packet >> moveIn.stateMessage >> moveIn.xPos >> moveIn.yPos >> moveIn.playerNum >> moveIn.dir;
 					moveMessageStack.push_back(moveIn);
 					//cout << "Move packet recieved" << endl;
 					break;
@@ -120,7 +133,7 @@ void messageHandler()
 					//new bullet ping
 					packet >> bulletIn.posx >> bulletIn.posy >> bulletIn.dir >> bulletIn.bulletNum >> bulletIn.playerNum;
 					shootStack.push_back(bulletIn);
-					cout << "Cool ass bullet dog" << endl;
+					cout << "Bullet packet recieved" << endl;
 					break;
 				default:
 					cout << "Bad Input" << endl;
@@ -153,6 +166,7 @@ void messageCompute()
 			newPlayer.xPos = 600;
 			newPlayer.yPos = 0;
 			newPlayer.playerNum = playerIps.size() + 1;
+			
 
 			packet << newPlayer.messageType << newPlayer.stateMessage << newPlayer.xPos << newPlayer.yPos << newPlayer.playerNum;
 			sf::IpAddress ipOut(connectionIt->clientIp);
@@ -234,21 +248,26 @@ void messageCompute()
 	}
 
 	//send out a ping of all the currently calculated bullet positions 
-	if (shootStack.size() != 0 && playerIps.size() > 1)
+	if (shootStack.size() != 0)
 	{
 		serverBulletPing bulletsOut1;
 		serverBulletPing bulletsOut2;
-		sf::Packet packet1;
-		sf::Packet packet2;
 		//initilise the packet
-		for (int count = 0; count < 15; count++)
+		for (int count = 0; count < maxBullets; count++)
 		{
+			bulletsOut1.messageType = 4;
 			bulletsOut1.posx[count] = 0;
 			bulletsOut1.posy[count] = 0;
 			bulletsOut1.dir[count] = false;
-			bulletsOut1.awake[count] = false;	
-		}
+			bulletsOut1.awake[count] = false;
 
+			bulletsOut2.messageType = 4;
+			bulletsOut2.posx[count] = 0;
+			bulletsOut2.posy[count] = 0;
+			bulletsOut2.dir[count] = false;
+			bulletsOut2.awake[count] = false;
+		}
+		int count = 0;
 		list<playerShootPing>::iterator it;
 		for (it = shootStack.begin(); it != shootStack.end(); it++)
 		{//go throught the list of bullet pings and find all the bullet pings and broadcast the bullet positions
@@ -257,49 +276,82 @@ void messageCompute()
 			case 1:
 				bulletsOut1.posx[it->bulletNum] = it->posx;
 				bulletsOut1.posy[it->bulletNum] = it->posy;
-				bulletsOut1.dir[it->bulletNum] = it->bulletNum;
+				bulletsOut1.dir[it->bulletNum] = it->dir;
 				bulletsOut1.awake[it->bulletNum] = true;
+				count++;
 				break;
 			case 2:
 				bulletsOut2.posx[it->bulletNum] = it->posx;
 				bulletsOut2.posy[it->bulletNum] = it->posy;
-				bulletsOut2.dir[it->bulletNum] = it->bulletNum;
+				bulletsOut2.dir[it->bulletNum] = it->dir;
 				bulletsOut2.awake[it->bulletNum] = true;
+				count++;
 				break;
 			}
 		}
+		if (count > 3)
+		{
+			int debug;
+		}
+	
 		//shove the data into the packet
-		packet1 << bulletsOut1.messageType << bulletsOut1.posx << bulletsOut1.posy << bulletsOut1.awake << bulletsOut1.dir;
-		packet2 << bulletsOut2.messageType << bulletsOut2.posx << bulletsOut2.posy << bulletsOut2.awake << bulletsOut2.dir;
-
+		sf::Packet packet1 = bulletPingPack(bulletsOut2);
+		sf::Packet packet2 = bulletPingPack(bulletsOut1);
 
 		if (!playerIps.empty())
 		{
-			for (int it = 0; it < playerIps.size(); it++)
+			for (int count = 0; count < playerIps.size(); count++)
 			{//send bullet ping to clients
-				switch (it)
+				switch (count)
 				{
 				case 0:
-					if (socket.send(packet1, playerIps[it], playerPorts[it]) != sf::Socket::Done)
+					if (socket.send(packet1, playerIps[count], playerPorts[count]) != sf::Socket::Done)
 					{
-						cout << "Error sending to player 1" << it << endl;
+						cout << "Error sending to player 1" << count << endl;
 					}
 					else
 					{
 						//cout << "Ping" << endl;
 					}
+					break;
 				case 1:
-					if (socket.send(packet1, playerIps[it], playerPorts[it]) != sf::Socket::Done)
+					if (socket.send(packet2, playerIps[count], playerPorts[count]) != sf::Socket::Done)
 					{
-						cout << "Error sending to player 2" << it << endl;
+						cout << "Error sending to player 2" << count << endl;
 					}
 					else
 					{
 						//cout << "Ping" << endl;
 					}
+					break;
 				}
-				
+
 			}
 		}
+		shootStack.clear();
 	}
+}
+
+sf::Packet bulletPingPack(serverBulletPing pingIn)
+{//function to pack bullet packet into the port
+	sf::Packet output;
+	output << pingIn.messageType;
+	for (int it = 0; it < maxBullets; it++)
+	{
+		output << pingIn.posx[it];
+	}
+	for (int it = 0; it < maxBullets; it++)
+	{
+		output << pingIn.posy[it];
+	}
+	for (int it = 0; it < maxBullets; it++)
+	{
+		output << pingIn.awake[it];
+	}
+	for (int it = 0; it < maxBullets; it++)
+	{
+		output << pingIn.dir[it];
+	}
+
+	return output;
 }
