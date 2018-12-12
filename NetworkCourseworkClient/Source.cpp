@@ -125,7 +125,7 @@ void messageHandler()
 					break;
 				case 2:
 					//new player move message
-					packet >> moveIn.stateMessage >> moveIn.xPos >> moveIn.yPos >> moveIn.playerNum >> moveIn.dir;
+					packet >> moveIn.stateMessage >> moveIn.xPos >> moveIn.yPos >> moveIn.playerNum >> moveIn.dir >> moveIn.yVel;
 					moveMessageStack.push_back(moveIn);
 					//cout << "Move packet recieved" << endl;
 					break;
@@ -207,6 +207,7 @@ void messageCompute()
 	{
 		float playerPosArray[2][2];
 		PlayerStates playerStateArray[2];
+		float playerYVelArray[2];
 
 		list<playerMoveMessage>::iterator moveIt;
 		for (moveIt = moveMessageStack.begin(); moveIt != moveMessageStack.end(); moveIt++)
@@ -214,6 +215,7 @@ void messageCompute()
 			playerStateArray[moveIt->playerNum - 1] = static_cast<PlayerStates>(moveIt->stateMessage);
 			playerPosArray[moveIt->playerNum - 1][0] = moveIt->xPos;
 			playerPosArray[moveIt->playerNum - 1][1] = moveIt->yPos;
+			playerYVelArray[moveIt->playerNum - 1] = moveIt->yVel;
 		}
 
 		//send out position ping
@@ -225,11 +227,13 @@ void messageCompute()
 		movePing.yPos1 = playerPosArray[0][1];
 		movePing.xPos2 = playerPosArray[1][0];
 		movePing.yPos2 = playerPosArray[1][1];
+		movePing.yVel1 = playerYVelArray[0];
+		movePing.yVel2 = playerYVelArray[1];
 
 
 		//cout << movePing.xPos2 << movePing.yPos2 << endl;
 
-		packet << movePing.messageType << movePing.xPos1 << movePing.yPos1 << movePing.player1State << movePing.xPos2 << movePing.yPos2 << movePing.player2State;
+		packet << movePing.messageType << movePing.xPos1 << movePing.yPos1 << movePing.player1State << movePing.xPos2 << movePing.yPos2 << movePing.player2State << movePing.yVel1 << movePing.yVel2;
 		if (!playerIps.empty())
 		{
 			for (int it = 0; it < playerIps.size(); it++)

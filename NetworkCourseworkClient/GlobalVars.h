@@ -10,6 +10,7 @@ extern struct playerMoveMessage {
 	float yPos;
 	int playerNum;
 	bool dir;
+	float yVel = 0;
 };
 
 extern struct  connectionMessage
@@ -29,6 +30,8 @@ extern struct serverPositionPing
 	float xPos2;
 	float yPos2;
 	int player2State;
+	float yVel1 = 0;
+	float yVel2 = 0;
 };
 
 
