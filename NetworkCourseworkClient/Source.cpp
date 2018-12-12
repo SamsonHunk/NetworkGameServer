@@ -166,6 +166,14 @@ void messageCompute()
 			newPlayer.xPos = 600;
 			newPlayer.yPos = 0;
 			newPlayer.playerNum = playerIps.size() + 1;
+			switch (newPlayer.playerNum)
+			{
+			case 1:
+				newPlayer.xPos = 200;
+				break;
+			case 2:
+				newPlayer.xPos = 500;
+			}
 			
 
 			packet << newPlayer.messageType << newPlayer.stateMessage << newPlayer.xPos << newPlayer.yPos << newPlayer.playerNum;
@@ -179,13 +187,11 @@ void messageCompute()
 				switch (newPlayer.playerNum)
 				{
 				case 1:
-					newPlayer.xPos = 200;
 					cout << "New Client Connected: " << connectionIt->clientIp << " port: " << connectionIt->clientPort << endl;
 					playerIps.push_back(sf::IpAddress(connectionIt->clientIp));
 					playerPorts.push_back(connectionIt->clientPort);
 					break;
 				case 2:
-					newPlayer.xPos = 800;
 					cout << "New Client Connected: " << connectionIt->clientIp << " port: " << connectionIt->clientPort << endl;
 					playerIps.push_back(sf::IpAddress(connectionIt->clientIp));
 					playerPorts.push_back(connectionIt->clientPort);
